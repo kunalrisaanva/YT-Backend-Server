@@ -5,21 +5,22 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
 
-const genrateAccessAndRefreshToken = async(userId) => {
+const genrateAccessAndRefreshTokens = async(userId) => {
     try {
         const user = await User.findById(userId);
-        const accesToken =  user.genrateAccessToken();
-        const refreshTOken =  user.genraterefreshToken();
-        user.refreshTOken = refreshTOken
+        const accesToken = await user.genrateAccessToken();
+        const refreshToken = await user.genraterefreshToken();
+        user.refreshToken = refreshToken
+
         await user.save({ validateBeforeSave:false });
-        return { accesToken ,refreshTOken }
+        return { accesToken ,refreshToken }
     } catch (error) {
         throw ApiError(500," Something went wrong refresh and access token ")
     }
 }
 
 
-const registerUser = asyncHandler(async (req, res) => {
+const registerUser = asyncHandler(async (req, res , next) => {
 
     const { username, email, fullName, password } = req.body;
 
@@ -34,11 +35,11 @@ const registerUser = asyncHandler(async (req, res) => {
     const existedUser = await User.findOne({
         $or: [{ username }, { email }],
     });
-
+    
     if (existedUser) {
         throw new ApiError(409, "User with email or username allready existed");
     }
-
+    
     const avatartLocalPath = req.files?.avatar[0]?.path; 
  
     // const coverImagelocalPath = req.files?.coverImage[0]?.path;
@@ -84,15 +85,14 @@ const registerUser = asyncHandler(async (req, res) => {
 
 
 
-const loginUser = asyncHandler( async(req,res,next) => {
+const loginUser = asyncHandler( async(req,res) => {
         
-
         const { email , username , password } = req.body
 
-        if(!username || !email){
+        if(!username && !email){
             throw new ApiError(400,' username or password is required ')
         };
-
+        
         const user = await User.findOne({
             $or:[
                 {
@@ -114,20 +114,21 @@ const loginUser = asyncHandler( async(req,res,next) => {
             throw new ApiError(401," Invlid user credintails ");
         };
 
-       const { refreshTOken , accesToken } =  await genrateAccessAndRefreshToken(user._id);
-
+       const { refreshToken , accesToken } =  await genrateAccessAndRefreshTokens(user._id);
+    //    console.log(refreshToken)
        const loggedInUser = await User.findById(user._id).select('-password -refreshToken '); 
+       
+       const cookieOptions = {
+        httpOnly: true, // Makes the cookie inaccessible to JavaScript
+        // secure: true, // Sends cookie only over HTTPS
+      };
 
-       const options = {
-        httpOnly:true,
-        secure:true
-       } ;
-
-       return res.status(200)
-       .cokkie( 'accessToken',accesToken,options)
-       .cokkie("refreshToken",refreshTOken,options)
+       return res
+       .status(200)
+       .cookie("accessToken",accesToken,cookieOptions)
+       .cookie("refreshToken", refreshToken,cookieOptions)
        .json( new ApiResponse (200, {
-        user : loginUser , refreshTOken , accesToken,
+        user : loggedInUser , refreshToken , accesToken,
         },
         "User logged In Successfully"
         ))
@@ -136,30 +137,33 @@ const loginUser = asyncHandler( async(req,res,next) => {
 
 
 const logOutUser = asyncHandler( async (req,res) => {
-     
+       
         await User.findByIdAndUpdate(req.user._id,{
                 $set:{
-                    refreshTOken:undefined
+                    refreshToken:""
                 }
             },{new:true});
         
             const options = {
                 httpOnly:true,
-                secure:true
+                // secure:true
                } ;
         return res
         .status(200)
         .clearCookie("accessToken",options)
         .clearCookie("refreshToken",options)
-        .json( ApiResponse(200,{},"user logged Out"))
+        .json( new ApiResponse(200,{},"user logged Out"));
 
 } )
 
-
+// const refreshAccessToken = asyncHandler( async(req,res)=> {
+    
+// } )
 
 export { 
 
     registerUser ,
     loginUser,
-    logOutUser
+    logOutUser,
+    // refreshAccessToken
 };
