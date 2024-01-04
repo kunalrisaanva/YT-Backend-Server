@@ -308,10 +308,11 @@ const updateUserAvatar = asyncHandler(async (req, next) => {
 const updateUserCoverImage = asyncHandler(async (req, next) => {
     const covertLocalPath = req.file?.path;
 
-    if (covertLocalPath) {
+    if (!covertLocalPath) {
         throw new ApiError(400, " Avatar file is Missing ");
     }
-
+    //todo delete old image  on cloudinary leter cover it 
+    
     const coverImage = await uploadOnCloudinary(covertLocalPath);
 
     if (coverImage.path) {
@@ -428,7 +429,7 @@ const getWatchHistory = asyncHandler(async(req,res)=>{
                             from:"users",
                             localField:"owner",
                             foreignField:"_id",
-                            as:"owner",
+                            as:"owner", //overright on this field
                             pipeline:[
                                 {
                                     $project:{
