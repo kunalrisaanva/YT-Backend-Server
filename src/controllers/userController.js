@@ -4,6 +4,9 @@ import { User } from "../models/userModel.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
+import mongoose from "mongoose"
+
+
 
 const genrateAccessAndRefreshTokens = async (userId) => {
     try {
@@ -213,6 +216,8 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     }
 });
 
+
+
 const changeCurrenPassword = asyncHandler(async (req, res) => {
     const { newPassword, oldPassword } = req.body;
     const id = req.user?._id;
@@ -266,6 +271,8 @@ const updateAccountDetails = asyncHandler(async (req, next) => {
         );
 });
 
+
+
 const updateUserAvatar = asyncHandler(async (req, next) => {
     const avatartLocalPath = req.file?.path;
 
@@ -296,6 +303,8 @@ const updateUserAvatar = asyncHandler(async (req, next) => {
         );
 });
 
+
+
 const updateUserCoverImage = asyncHandler(async (req, next) => {
     const covertLocalPath = req.file?.path;
 
@@ -323,6 +332,9 @@ const updateUserCoverImage = asyncHandler(async (req, next) => {
         .status(200)
         .json(new ApiResponse(200, { user: user }, "User Cover image is updated "));
 });
+
+
+
 
 const getUserChannelProfile = asyncHandler(async (req, res) => {
     const { username } = req.params;
@@ -384,16 +396,70 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         },
     ]);
 
-    if(!channel?.length){
-        throw new ApiError(400," channel does not exist ")
+    if (!channel?.length) {
+        throw new ApiError(400, " channel does not exist ")
     }
 
     return res
+        .status(200)
+        .json(
+            new ApiResponse(200, channel[0], "user channel fetched successfully")
+        )
+});
+
+
+const getWatchHistory = asyncHandler(async(req,res)=>{
+
+    const user = await User.aggregate([
+        {
+            $match:{
+                _id: new mongoose.Types.ObjectId(req.user?._id)
+            }
+        },
+        {
+            $lookup:{
+                from:"videos",
+                localField:"watchHistory",
+                foreignField:"_id",
+                as:"watchHistory",
+                pipeline:[
+                    {
+                        $lookup:{
+                            from:"users",
+                            localField:"owner",
+                            foreignField:"_id",
+                            as:"owner",
+                            pipeline:[
+                                {
+                                    $project:{
+                                        fullName:1,
+                                        username:1,
+                                        avatar:1
+                                    }
+                                }
+                            ]
+                        }
+                    },
+                    {
+                        $addFields:{
+                            owner:{
+                                $first:"$owner"
+                            }
+                        }
+                    }
+                    
+                ]
+            }
+        }
+    ]);
+
+    res
     .status(200)
     .json(
-        new ApiResponse(200,channel[0],"user channel fetched successfully")
+        new ApiResponse(200,user[0].wathHistory,"watch history fetched successfully")
     )
-});
+})
+
 
 
 
@@ -408,5 +474,6 @@ export {
     updateAccountDetails,
     updateUserAvatar,
     updateUserCoverImage,
-    getUserChannelProfile
+    getUserChannelProfile,
+    getWatchHistory
 };
