@@ -149,8 +149,8 @@ const logOutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: {
-                refreshToken: "",
+            $unset: {
+                refreshToken: 1, // it will remove refresh token from the document
             },
         },
         { new: true }
@@ -208,7 +208,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
                 new ApiResponse(
                     200,
                     { accesToken, refreshToken: newRefreshToken },
-                    "Accessed Token refreshed"
+                    "refresh Token refreshed"
                 )
             );
     } catch (error) {
