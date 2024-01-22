@@ -61,6 +61,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
         }
         
     let thumbnailLocalPath = req.files?.thumbnail[0].path
+
     if(!thumbnailLocalPath){
         throw new ApiError(400," thumbnail is requried for published ")
     }
@@ -78,8 +79,7 @@ const publishAVideo = asyncHandler(async (req, res) => {
         videoFile:video.url,
         thumbnail:thumbnail.url,
         owner:req.user?._id,
-        duration:video?.duration,
-        views:0,
+        duration:video.duration,
         isPublished:true,
     });
 
@@ -100,21 +100,73 @@ const publishAVideo = asyncHandler(async (req, res) => {
 const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     //TODO: get video by id
+
+    const video =  await Video.findById(videoId).select(" -createdAt -updatedAt ")
+
+    if(!video){
+        throw new ApiError(404," video Not Found ")
+    }
+
+    return res
+    .status(200)
+    .json(
+        200,video," feched video successfully "
+    )
+
+
 })
 
 const updateVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
+    
     //TODO: update video details like title, description, thumbnail
+    const thumbnail = req.file
+    const video = await Video.findByIdAndUpdate(videoId,{
+        $set:{
+
+        }
+    })
+
+    return res
+    .status(200)
+    .json(
+        200, {video} ," Video Updated  "
+    )
 
 })
 
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
     //TODO: delete video
+
+    const video = await Video.findByIdAndDelete(videoId);
+
+    if(!video){
+        throw new ApiError(404," Video Not Found ")
+    }
+
+    return res
+    .status(200)
+    .json(
+        200, {} ," Video Deleted "
+    )
 })
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
     const { videoId } = req.params
+
+    const video = await Video.findByIdAndUpdate(videoId,{
+        $set:{
+            isPublished:false
+        }
+    })
+
+
+    return res
+    .status(200)
+    .json(
+        200, {} ," toggle changed "
+    )
 })
 
 

@@ -23,11 +23,12 @@ const genrateAccessAndRefreshTokens = async (userId) => {
 };
 
 const registerUser = asyncHandler(async (req, res, next) => {
+    
     const { username, email, fullName, password } = req.body;
 
     if (
         [username, email, fullName, password].some(
-            (fields) => fields?.trim() === ""
+            (fields) => fields?.trim() === "" || undefined
         )
     ) {
         throw new ApiError(400, "all fields are required");
@@ -42,8 +43,6 @@ const registerUser = asyncHandler(async (req, res, next) => {
     }
 
     const avatartLocalPath = req.files?.avatar[0]?.path;
-
-    // const coverImagelocalPath = req.files?.coverImage[0]?.path;
 
     let coverImagelocalPath;
     if (
@@ -68,7 +67,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
     const user = await User.create({
         fullName,
         avatar: { publicId:avatar.public_id , url:avatar.url },
-        coverImage: coverImage?.url || "",
+        coverImage: { publicId:coverImage.public_id , url: coverImage.url },
         email,
         password,
         username: username.toLowerCase(),
@@ -79,7 +78,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
     );
 
     if (!createdUser) {
-        throw new ApiError(500, "Somethind went wrong while registering a User");
+        throw new ApiError(500, "Somethind wencomt wrong while registering a User");
     }
 
     return res
@@ -144,6 +143,7 @@ const loginUser = asyncHandler(async (req, res) => {
             )
         );
 });
+
 
 const logOutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(
@@ -236,11 +236,13 @@ const changeCurrenPassword = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, {}, "password has been changed successfully "));
 });
 
+
 const getCurrentUser = asyncHandler(async (req, next) => {
     return res
         .status(200)
         .json(new ApiResponse(200, { data: req.user }, " User information "));
 });
+
 
 const updateAccountDetails = asyncHandler(async (req, next) => {
     const { fullName, email } = req.body;
@@ -273,30 +275,34 @@ const updateAccountDetails = asyncHandler(async (req, next) => {
 
 
 
-const updateUserAvatar = asyncHandler(async (req, next) => {
-    const avatartLocalPath = req.file?.path;
-
-    if (avatartLocalPath) {
+const updateUserAvatar = asyncHandler(async (req, res) => {
+    
+    const avatartLocalPath = req.file?.path
+   
+    if (!avatartLocalPath) {
         throw new ApiError(400, " Avatar file is Missing ");
     }
-  //todo delete old image  on cloudinary leter cover it 
-
+   
     const avatar = await uploadOnCloudinary(avatartLocalPath);
 
-    if (avatar.path) {
+    if (!avatar) {
         throw new ApiError(400, " Error while uploading on avatart ");
     }
 
-    const user = await User.findById(req.user?._id,).select("-passworrd");
+    const user = await User.findById(req.user?._id,).select(" -passworrd -refreshToken ");
 
-    const previousImage = user.avatar.publicId;
+    if(!user){
+        throw new ApiError(404," User Not Found ")
+    }
+     
+    const previousImagePublicId = user.avatar.publicId;
 
-    console.log(previousImage);
+    await delteOnCloudinray(previousImagePublicId);
 
-    // user.avatar.publicId = avatar.public_id;
-    // user.avatar.url = avatar.url
+    user.avatar.publicId = avatar.public_id;
+    user.avatar.url = avatar.url
 
-    // await user.save( { validateBeforeSave:false } )
+    await user.save( { validateBeforeSave:false } )
 
 
     return res
@@ -308,13 +314,14 @@ const updateUserAvatar = asyncHandler(async (req, next) => {
 
 
 
-const updateUserCoverImage = asyncHandler(async (req, next) => {
+const updateUserCoverImage = asyncHandler(async (req, res) => {
+    
     const covertLocalPath = req.file?.path;
 
     if (!covertLocalPath) {
         throw new ApiError(400, " Avatar file is Missing ");
     }
-    //todo delete old image  on cloudinary leter cover it 
+    
     
     const coverImage = await uploadOnCloudinary(covertLocalPath);
 
@@ -322,15 +329,21 @@ const updateUserCoverImage = asyncHandler(async (req, next) => {
         throw new ApiError(400, " Error while uploading on coverImage ");
     }
 
-    const user = await User.findByIdAndUpdate(
-        req.user?._id,
-        {
-            $set: {
-                coverImage: coverImage.url,
-            },
-        },
-        { new: true }
-    ).select("-passworrd");
+    const user = await User.findById(req.user?._id).select(" -passworrd -refrehToken ");
+
+    if(!user){
+        throw new ApiError(404," User Not Found ")
+    }
+    
+    const previousCoverImagePublicId = user.coverImage.publicId;
+
+    await delteOnCloudinray(previousCoverImagePublicId);
+
+    user.coverImage.publicId = coverImage.public_id;
+    user.coverImage.url = coverImage.url;
+
+    await user.save( { validateBeforeSave:false } );
+
 
     return res
         .status(200)
@@ -341,6 +354,7 @@ const updateUserCoverImage = asyncHandler(async (req, next) => {
 
 
 const getUserChannelProfile = asyncHandler(async (req, res) => {
+    
     const { username } = req.params;
 
     if (!username?.trim()) {
