@@ -29,12 +29,23 @@ const userSchema = new Schema(
     },
 
     avatar: {
-      type: String, // cloudnary url
-      required: true,
+      publicId:{
+        type:String,
+        required:true
+      },
+      url:{
+        type:String,
+        required: true,
+      }, // clodinary url 
     },
 
     coverImage: {
-      type: String, // cloudnary url
+      publicId:{
+        type:String
+      },
+      url:{
+        type:String
+      }, // clodinary url 
     },
 
     watchHistory: [

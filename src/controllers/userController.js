@@ -1,7 +1,7 @@
 import asyncHandler from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/userModel.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { uploadOnCloudinary , delteOnCloudinray } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 import mongoose from "mongoose"
@@ -67,7 +67,7 @@ const registerUser = asyncHandler(async (req, res, next) => {
 
     const user = await User.create({
         fullName,
-        avatar: avatar.url,
+        avatar: { publicId:avatar.public_id , url:avatar.url },
         coverImage: coverImage?.url || "",
         email,
         password,
@@ -279,6 +279,7 @@ const updateUserAvatar = asyncHandler(async (req, next) => {
     if (avatartLocalPath) {
         throw new ApiError(400, " Avatar file is Missing ");
     }
+  //todo delete old image  on cloudinary leter cover it 
 
     const avatar = await uploadOnCloudinary(avatartLocalPath);
 
@@ -286,15 +287,17 @@ const updateUserAvatar = asyncHandler(async (req, next) => {
         throw new ApiError(400, " Error while uploading on avatart ");
     }
 
-    const user = await User.findByIdAndUpdate(
-        req.user?._id,
-        {
-            $set: {
-                avatar: avatar.url,
-            },
-        },
-        { new: true }
-    ).select("-passworrd");
+    const user = await User.findById(req.user?._id,).select("-passworrd");
+
+    const previousImage = user.avatar.publicId;
+
+    console.log(previousImage);
+
+    // user.avatar.publicId = avatar.public_id;
+    // user.avatar.url = avatar.url
+
+    // await user.save( { validateBeforeSave:false } )
+
 
     return res
         .status(200)
