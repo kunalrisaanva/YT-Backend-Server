@@ -31,7 +31,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
                         $project:{
                             fullName:1,
                             username:1,
-                            avatar:1
+                            avatar:1,
                         }
                     }
                 ]
@@ -39,11 +39,14 @@ const getVideoComments = asyncHandler(async (req, res) => {
         }
     ])
 
-    console.log(comment);
+    if(!comment){
+        throw new ApiError(400," video Id not valid ")
+    }
+    
     return res
     .status(201)
     .json(
-        200,comment," video comments is fethed "
+        new ApiResponse(  200,comment," video comments is fethed ")
     )
 
     
@@ -53,13 +56,13 @@ const getVideoComments = asyncHandler(async (req, res) => {
 const addComment = asyncHandler(async (req, res) => {
     // TODO: add a comment to a video
     const {videoId} = req.params
-
+    
     if( ! isValidObjectId(videoId) ){
         throw new ApiError(400," invalid video id ");
     }
 
    const comment =  await Comment.create({
-        content:req.body.content ? content : "Please enter your comment first " ,
+        content:req.body?.content ,
         video:videoId,
         owner:req.user?._id
 
@@ -68,21 +71,64 @@ const addComment = asyncHandler(async (req, res) => {
     return res
     .status(201)
     .json(
-        200,comment," comment is added "
+        new ApiResponse(  200,comment," video comments is fethed ")
     )
 })
 
 const updateComment = asyncHandler(async (req, res) => {
+    const { commentId } = req.params
     // TODO: update a comment
+    const { content } = req.body;
+
+    if(! isValidObjectId(commentId)){
+        throw new ApiError(404 , " Invlid Comment Id ")
+    }
+    
+    const comment = await Comment.findById(commentId).select(" -createdAt -updatedAt ")
+   
+    if(!req.user?._id === new mongoose.Types.ObjectId(comment.owner)){
+        throw new ApiError(400," Invlid User !! This User Don't Have Permission To Edite This Comment")
+    }
+    
+    comment.content = content;
+
+    await comment.save({ validateBeforeSave: false });
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, comment , " Comment is Edited ")
+    )
+
+
 })
 
 const deleteComment = asyncHandler(async (req, res) => {
+
+    const { commentId } = req.params
     // TODO: delete a comment
+    if(! isValidObjectId(commentId)){
+        throw new ApiError(404 , " Invlid Comment Id ")
+    }
+    
+    const commentFind = await Comment.findById(commentId).select(" -updatedAt -updatedAt ")
+
+    if(!req.user?._id === new mongoose.Types.ObjectId(commentFind.owner)){
+        throw new ApiError(400," Invlid User !! This User Don't Have Permission To Edite This Comment")
+    }
+    
+    const comment = await Comment.findByIdAndDelete(commentId)
+
+    return res
+    .status(200)
+    .json(
+        new ApiResponse(200, {} , " Comment is Deleted ")
+    )
 })
 
 export {
     getVideoComments, 
     addComment, 
     updateComment,
-     deleteComment
+    deleteComment
     }

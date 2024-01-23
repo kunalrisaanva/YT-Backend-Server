@@ -167,6 +167,7 @@ const logOutUser = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, {}, "user logged Out"));
 });
 
+
 const refreshAccessToken = asyncHandler(async (req, res) => {
     const incomingRefreshToken =
         req.cookies.refreshToken || req.body.refreshToken;
@@ -214,6 +215,7 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     } catch (error) {
         throw ApiError(401, error?.message || " Invalid refresh token ");
     }
+
 });
 
 
@@ -237,14 +239,14 @@ const changeCurrenPassword = asyncHandler(async (req, res) => {
 });
 
 
-const getCurrentUser = asyncHandler(async (req, next) => {
+const getCurrentUser = asyncHandler(async (req, res) => {
     return res
         .status(200)
         .json(new ApiResponse(200, { data: req.user }, " User information "));
 });
 
 
-const updateAccountDetails = asyncHandler(async (req, next) => {
+const updateAccountDetails = asyncHandler(async (req, res) => {
     const { fullName, email } = req.body;
 
     if (!(fullName || email)) {
@@ -260,7 +262,7 @@ const updateAccountDetails = asyncHandler(async (req, next) => {
             },
         },
         { new: true }
-    ).select("-password");
+    ).select("-password -createdAt -updatedAt ");
 
     return res
         .status(200)
