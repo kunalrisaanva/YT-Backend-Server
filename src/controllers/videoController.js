@@ -163,16 +163,20 @@ const deleteVideo = asyncHandler(async (req, res) => {
 const togglePublishStatus = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
 
-  const video = await Video.findByIdAndUpdate(videoId, {
-    $set: {
-      isPublished: false,
-    },
-  });
+ 
+  const videoSatus = await Video.findOne({_id:videoId})
+
+  if(videoSatus.isPublished = true ){
+     videoSatus.isPublished = false
+  }else{
+    videoSatus.isPublished = true 
+  }
+
 
   return res
     .status(200)
     .json(
-      new ApiResponse(200, createdVideo, "  Video  Uploaded Successfully ")
+      new ApiResponse(200, videoSatus ? "is publihed ":" Private  ")
     );
 });
 

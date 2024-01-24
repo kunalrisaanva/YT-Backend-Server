@@ -117,7 +117,7 @@ const deleteComment = asyncHandler(async (req, res) => {
         throw new ApiError(400," Invlid User !! This User Don't Have Permission To Edite This Comment")
     }
     
-    const comment = await Comment.findByIdAndDelete(commentId)
+    await Comment.findByIdAndDelete(commentId)
 
     return res
     .status(200)
