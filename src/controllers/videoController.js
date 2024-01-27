@@ -145,6 +145,8 @@ const updateVideo = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, video, " Video Details Updated  Successfully "));
 });
 
+
+
 const deleteVideo = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
   //TODO: delete video
@@ -160,11 +162,13 @@ const deleteVideo = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, {}, "  Video Deleted Successfully "));
 });
 
+
+
 const togglePublishStatus = asyncHandler(async (req, res) => {
   const { videoId } = req.params;
 
  
-  const videoSatus = await Video.findOne({_id:videoId})
+  const videoSatus = await Video.findOne({_id:videoId});
 
   if(videoSatus.isPublished = true ){
      videoSatus.isPublished = false
@@ -172,13 +176,18 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
     videoSatus.isPublished = true 
   }
 
+  await videoSatus.save( {validateBeforeSave:false} )
 
   return res
     .status(200)
     .json(
       new ApiResponse(200, videoSatus ? "is publihed ":" Private  ")
     );
+
+
 });
+
+
 
 export {
   getAllVideos,

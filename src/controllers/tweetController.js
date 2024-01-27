@@ -15,8 +15,8 @@ const createTweet = asyncHandler(async (req, res) => {
     }
 
     const tweet = await Tweet.create({
-     owner: req.user?._id,
-     content
+        owner: req.user?._id,
+        content
     });
 
 
@@ -47,27 +47,30 @@ const getUserTweets = asyncHandler(async (req, res) => {
     }
 
    const user = await Tweet.aggregate([
-        {
-            $match:{
-                owner: new mongoose.Types.ObjectId(userId)
-            }
-        },{
-            $lookup:{
-                from:"users",
-                localField:"owner",
-                foreignField:"_id",
-                as:"owner",
-                pipeline:[
-                    {
-                        $project:{
-                            fullName:1,
-                            username:1,
-                            avatar:1
+            {
+                $match:{
+                    owner: new mongoose.Types.ObjectId(userId)
+                }
+            },
+            
+            {
+                $lookup:{
+                    from:"users",
+                    localField:"owner",
+                    foreignField:"_id",
+                    as:"owner",
+                    pipeline:[
+                        {
+                            $project:{
+                                fullName:1,
+                                username:1,
+                                avatar:1
+                            }
                         }
-                    }
-                ]
+                    ]
+                }
             }
-        }
+
     ]);
     
     return res

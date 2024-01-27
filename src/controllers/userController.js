@@ -255,13 +255,13 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
 
     const user = await User.findByIdAndUpdate(
         req.user?._id,
-        {
-            $set: {
-                fullName,
-                email,
+            {
+                $set: {
+                    fullName,
+                    email,
+                },
             },
-        },
-        { new: true }
+            { new: true }
     ).select("-password -createdAt -updatedAt ");
 
     return res
@@ -364,56 +364,56 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     }
 
     const channel = await User.aggregate([
-        {
-            $match: {
-                username: username?.toLowerCase(),
-            },
-        },
-        {
-            $lookup: {
-                from: "subscriptions",
-                localField: "_id",
-                foreignField: "channel",
-                as: "subscribers",
-            },
-        },
-        {
-            $lookup: {
-                from: "subscriptions",
-                localField: "_id",
-                foreignField: "subsriber",
-                as: "subscriberTo",
-            },
-        },
-        {
-            $addFields: {
-                subscrobersCount: {
-                    $size: "$subscribers",
+            {
+                $match: {
+                    username: username?.toLowerCase(),
                 },
-                channelSucbscribedToCount: {
-                    $size: "$subscriberTo",
+            },
+            {
+                $lookup: {
+                    from: "subscriptions",
+                    localField: "_id",
+                    foreignField: "channel",
+                    as: "subscribers",
                 },
-                isSubscribed: {
-                    $cond: {
-                        if: { $in: [req.user?._id, "$subscribers.subscriber"] },
-                        then: true,
-                        else: false,
+            },
+            {
+                $lookup: {
+                    from: "subscriptions",
+                    localField: "_id",
+                    foreignField: "subsriber",
+                    as: "subscriberTo",
+                },
+            },
+            {
+                $addFields: {
+                    subscrobersCount: {
+                        $size: "$subscribers",
+                    },
+                    channelSucbscribedToCount: {
+                        $size: "$subscriberTo",
+                    },
+                    isSubscribed: {
+                        $cond: {
+                            if: { $in: [req.user?._id, "$subscribers.subscriber"] },
+                            then: true,
+                            else: false,
+                        },
                     },
                 },
             },
-        },
-        {
-            $project: {
-                fullName: 1,
-                username: 1,
-                subscrobersCount: 1,
-                channelSucbscribedToCount: 1,
-                isSubscribed: 1,
-                avatar: 1,
-                coverImage: 1,
-                email: 1,
+            {
+                $project: {
+                    fullName: 1,
+                    username: 1,
+                    subscrobersCount: 1,
+                    channelSucbscribedToCount: 1,
+                    isSubscribed: 1,
+                    avatar: 1,
+                    coverImage: 1,
+                    email: 1,
+                },
             },
-        },
     ]);
 
     if (!channel?.length) {
@@ -444,6 +444,7 @@ const getWatchHistory = asyncHandler(async(req,res)=>{
                 as:"watchHistory",
                 pipeline:[
                     {
+                        
                         $lookup:{
                             from:"users",
                             localField:"owner",
@@ -460,6 +461,7 @@ const getWatchHistory = asyncHandler(async(req,res)=>{
                             ]
                         }
                     },
+
                     {
                         $addFields:{
                             owner:{

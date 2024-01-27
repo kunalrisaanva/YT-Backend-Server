@@ -33,6 +33,7 @@ const createPlaylist = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(new ApiResponse(200, newPlaylist, " plalist Has Been created "));
+
 });
 
 
@@ -46,33 +47,34 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
   }
 
   const plalist = await Playlist.aggregate([
-    {
-      $match: {
-        owner: new mongoose.Types.ObjectId(userId),
-      },
-    },
-    {
-      $lookup: {
-        from: "users",
-        localField: "owner",
-        foreignField: "_id",
-        as: "owner",
-        pipeline: [
-          {
-            $project: {
-              fullName: 1,
-              username: 1,
-              avatar: 1,
-            },
-          },
-          {
-            $addFields: {
-              owner: "$owner",
-            },
-          },
+                {
+                  $match: {
+                      owner: new mongoose.Types.ObjectId(userId),
+                  },
+                },
+                {
+                  $lookup: {
+                    from: "users",
+                    localField: "owner",
+                    foreignField: "_id",
+                    as: "owner",
+                    pipeline: [
+                      {
+                          $project: {
+                              fullName: 1,
+                              username: 1,
+                              avatar: 1,
+                          },
+                      },
+                      {
+                          $addFields: {
+                            owner: "$owner",
+                          },
+                      },
         ],
       },
     },
+    
   ]);
 
   if(!plalist){
@@ -99,35 +101,35 @@ const getPlaylistById = asyncHandler(async (req, res) => {
   }
 
   const plalist = await Playlist.aggregate([
-    {
-        $match:{
-            _id: new mongoose.Types.ObjectId(playlistId)
-        }
-    },
-    {
-        $lookup:{
-           from:"users",
-           localField:"owner",
-           foreignField:"_id",
-           as:"owner",
-           pipeline:[
-            {
-                $project:{
-                    fullName:1,
-                    username:1,
-                    avatar:1
-                }
-            },
-            {
-                $addFields:{
-                    owner:{
-                     $firs:"$owner"
-                    }
-                }
+        {
+            $match:{
+                _id: new mongoose.Types.ObjectId(playlistId)
             }
-           ]
+        },
+        {
+            $lookup:{
+                from:"users",
+                localField:"owner",
+                foreignField:"_id",
+                as:"owner",
+                pipeline:[
+                    {
+                        $project: {
+                            fullName:1,
+                            username:1,
+                            avatar:1
+                        }
+                    },
+                    {
+                        $addFields:{
+                            owner:{
+                            $firs:"$owner"
+                            }
+                        }
+                    }
+              ]
+            }
         }
-    }
   ])
 
   if(!plalist){
