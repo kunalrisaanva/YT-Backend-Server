@@ -72,6 +72,10 @@ const getUserTweets = asyncHandler(async (req, res) => {
             }
 
     ]);
+
+    if(user.length < 0){
+        throw new ApiError(404, " tweet not found ")
+    }
     
     return res
     .status(200)

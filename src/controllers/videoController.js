@@ -34,7 +34,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
 const publishAVideo = asyncHandler(async (req, res) => {
   const { title, description } = req.body;
   // TODO: get video, upload to cloudinary, create video
-
+    
   if (
     [title, description].some((fields) => fields.trim() === "" || undefined)
   ) {
@@ -74,14 +74,14 @@ const publishAVideo = asyncHandler(async (req, res) => {
     title,
     description,
     videoFile: video.url,
-    thumbnail: thumbnail.url,
-    owner: req.user?._id,
+    thumbnail: thumbnail?.url || "",
+    owner:req.user?._id.toString() ,
     duration: video.duration,
   });
 
 
   if (!createdVideo) {
-    throw new ApiError(400, " Something went wrong while Saving Into DB ");
+    throw new ApiError(400, " Something went wrong while Saving video  Into DB ");
   }
 
   return res
