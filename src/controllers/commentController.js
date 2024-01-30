@@ -31,7 +31,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
                         $project:{
                             fullName:1,
                             username:1,
-                            avatar:1,
+                            "avatar.url":1,
                         }
                     }
                 ]
@@ -114,7 +114,7 @@ const deleteComment = asyncHandler(async (req, res) => {
     const commentFind = await Comment.findById(commentId).select(" -updatedAt -updatedAt ")
 
     if(!req.user?._id === new mongoose.Types.ObjectId(commentFind.owner)){
-        throw new ApiError(400," Invlid User !! This User Don't Have Permission To Edite This Comment")
+        throw new ApiError(400," Invlid User !! This User Don't Have Permission To Delete This Comment")
     }
     
     await Comment.findByIdAndDelete(commentId)

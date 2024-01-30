@@ -9,10 +9,12 @@ const createTweet = asyncHandler(async (req, res) => {
     //TODO: create tweet
     const content = req.body.tweet;
    
+    const user = await User.exists({_id:req.user?._id})
 
-    if(!content){
-        throw new ApiError(400," Please Enter Your Tweet First ")
-    }
+    if(!user) throw new ApiError(404,"user not found ")
+
+    if(!content) throw new ApiError(400," Please Enter Your Tweet First ");
+
 
     const tweet = await Tweet.create({
         owner: req.user?._id,
@@ -42,6 +44,10 @@ const getUserTweets = asyncHandler(async (req, res) => {
     // TODO: get user tweets
      const userId = req.params.userId;
 
+    const existedUser = await User.exists({_id:userId})
+
+    if(! existedUser) throw new ApiError(404," user not found ")
+
     if(isValidObjectId(userId)){
         throw new ApiError(400," invalid user request ")
     }
@@ -64,10 +70,17 @@ const getUserTweets = asyncHandler(async (req, res) => {
                             $project:{
                                 fullName:1,
                                 username:1,
-                                avatar:1
+                                "avatar.url":1
                             }
                         }
                     ]
+                }
+            },
+            {
+                $addFields:{
+                    owner:{
+                        $first:"owner"
+                    }
                 }
             }
 
@@ -96,7 +109,7 @@ const updateTweet = asyncHandler(async (req, res) => {
     const updateTweet = await Tweet.findByIdAndUpdate({_id:tweetId},{$set:{
         content:req.body?.content
     }},{new:true});
-    console.log(updateTweet);
+    
 
     return res
     .status(200)

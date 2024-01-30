@@ -65,7 +65,7 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
     }
 
     
-    const channel = await User.findById(channelId);
+    const channel = await User.exists({_id:channelId});
     if (!channel) {
         throw new ApiError(404, "Channel not find!");
     }
@@ -87,7 +87,7 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
                         $project: {
                             username: 1,
                             fullName: 1,
-                            avatar: 1
+                            "avatar.url": 1
                         }
                     }
                 ]
@@ -151,7 +151,7 @@ const getSubscribedChannels = asyncHandler(async (req, res) => {
                                     $project:{
                                         username:1,
                                         fullName:1,
-                                        avatar:1,
+                                        "avatar.url":1,
                                     }
                                 },
                               

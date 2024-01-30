@@ -175,20 +175,19 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
     if (!incomingRefreshToken) {
         throw new ApiError(401, " Unauthrized Request ");
     }
-
     try {
-        const decodedToken = await jwt.sign(
+        const decodedToken =  jwt.verify(
             incomingRefreshToken,
-            process.env.REFRESH_TOKEN_SECRET
+            process.env.REFRESH_TOKEN_SECRET,
         );
-
+            
         const user = await User.findById(decodedToken?._id);
-
+        
         if (!user) {
             throw new ApiError(401, " Invalid Refresh Token ");
         }
 
-        if (incomingRefreshToken !== user?.refreshAccessToken) {
+        if (incomingRefreshToken !== user?.refreshToken) {
             throw new ApiError(401, "  Refresh Token is Expired or used  ");
         }
 
@@ -197,23 +196,23 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
             // secure:true
         };
 
-        const { accesToken, newRefreshToken } = await genrateAccessAndRefreshTokens(
+        const { accesToken, refreshToken } = await genrateAccessAndRefreshTokens(
             user._id
         );
 
         return res
             .status(200)
             .cookie("accessToken", accesToken, cookieOptions)
-            .cookie("refreshToken", newRefreshToken, cookieOptions)
+            .cookie("refreshToken", refreshToken, cookieOptions)
             .json(
                 new ApiResponse(
                     200,
-                    { accesToken, refreshToken: newRefreshToken },
+                    { accesToken, refreshToken },
                     "refresh Token refreshed"
                 )
             );
     } catch (error) {
-        throw ApiError(401, error?.message || " Invalid refresh token ");
+        throw new  ApiError(401, error?.message || " Invalid refresh token ");
     }
 
 });
@@ -226,7 +225,7 @@ const changeCurrenPassword = asyncHandler(async (req, res) => {
 
     const user = await User.findById(id);
     const isMatch = await user.isPasswordCorrect(oldPassword);
-    if (isMatch) {
+    if (! isMatch) {
         throw new ApiError(400, "invalid old Password");
     }
 
@@ -409,8 +408,8 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
                     subscrobersCount: 1,
                     channelSucbscribedToCount: 1,
                     isSubscribed: 1,
-                    avatar: 1,
-                    coverImage: 1,
+                    "avatar.url": 1,
+                    "coverImage.url": 1,
                     email: 1,
                 },
             },
@@ -474,11 +473,11 @@ const getWatchHistory = asyncHandler(async(req,res)=>{
             }
         }
     ]);
-
+   
     res
     .status(200)
     .json(
-        new ApiResponse(200,user[0].wathHistory,"watch history fetched successfully")
+        new ApiResponse(200,user[0].wathHistory || [] ,"watch history fetched successfully")
     )
 })
 

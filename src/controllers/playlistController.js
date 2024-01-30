@@ -3,36 +3,29 @@ import { Playlist } from "../models/playListModel.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import asyncHandler from "../utils/asyncHandler.js";
+import { Video } from "../models/videoModel.js";
+import { User } from "../models/userModel.js";
 
 const createPlaylist = asyncHandler(async (req, res) => {
   const { name, description } = req.body;
 
   //TODO: create playlist
 
-  if ([name, description].some((fields) => fields.trim() === "" || undefined)) {
+  if ([name, description].some( fields => fields.trim() === "" || undefined)) {
     throw new ApiError(400, " All Fields Are Required ");
   }
-
-  const playlist = await Playlist.exists({ name });
-
-  if (playlist) {
-    throw new ApiError(
-      400,
-      " This Name is Aleady Taken Please Enter Another Name of Playlist"
-    );
-  }
-
 
   const newPlaylist = await Playlist.create({
     name,
     description,
     owner: req.user?._id,
   });
-
+  
+  if(! newPlaylist) throw new ApiError(400, "somethig went wrong while creating playlist please try again ")
 
   return res
     .status(200)
-    .json(new ApiResponse(200, newPlaylist, " plalist Has Been created "));
+    .json(new ApiResponse(200, newPlaylist, " playlist Has Been created "));
 
 });
 
@@ -42,50 +35,65 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
   const { userId } = req.params;
   //TODO: get user playlists
 
-  if (isValidObjectId(userId)) {
+  const user = await User.exists({_id:userId});
+  
+  if(! user) throw new ApiError(404 , " user not found ")
+
+  if (! isValidObjectId(userId)) {
     throw new ApiError(400, " Invalid User Id ");
   }
+  
+  const playlist = await Playlist.aggregate([
+        {
+            $match:{
+              owner: new mongoose.Types.ObjectId(userId)
+            }
+        },
+        
+        {
+            $lookup:{
+               from:"videos",
+               localField:"videos",
+               foreignField:"_id",
+               as:"videos"
+            }
+        },
 
-  const plalist = await Playlist.aggregate([
-                {
-                  $match: {
-                      owner: new mongoose.Types.ObjectId(userId),
-                  },
-                },
-                {
-                  $lookup: {
-                    from: "users",
-                    localField: "owner",
-                    foreignField: "_id",
-                    as: "owner",
-                    pipeline: [
-                      {
-                          $project: {
-                              fullName: 1,
-                              username: 1,
-                              avatar: 1,
-                          },
-                      },
-                      {
-                          $addFields: {
-                            owner: "$owner",
-                          },
-                      },
-        ],
-      },
-    },
-    
+        {
+          $lookup:{
+            from:"users",
+            localField:"owner",
+            foreignField:"_id",
+            as:"owner",
+            pipeline:[
+               {
+                 $project:{
+                   fullName:1,
+                   username:1,
+                   "avatar.url":1
+                 }
+               }
+            ]
+          }
+        },
+
+        {
+          $addFields:{
+            owner:{
+               $first:"$owner"
+            },
+          }
+        }
+
   ]);
 
-  if(!plalist){
-    throw new ApiError(400," This User Does't Have Playlist ")
-  }
+  
 
-  console.log(plalist)
+  if(playlist.length < 0) throw new ApiError(404, " this user don't have playist ")
 
   return res
     .status(200)
-    .json(new ApiResponse(200, plalist, " plalist Has Been created "));
+    .json(new ApiResponse(200, playlist, " plalist Has Been created "));
 
 });
 
@@ -100,12 +108,22 @@ const getPlaylistById = asyncHandler(async (req, res) => {
     throw new ApiError(400, " Invalid Playlist Id " )
   }
 
-  const plalist = await Playlist.aggregate([
+  const playlist = await Playlist.aggregate([
         {
             $match:{
                 _id: new mongoose.Types.ObjectId(playlistId)
             }
         },
+
+        {
+            $lookup:{
+              from:"videos",
+              localField:"videos",
+              foreignField:"_id",
+              as:"videos"
+            }
+        },
+
         {
             $lookup:{
                 from:"users",
@@ -117,32 +135,31 @@ const getPlaylistById = asyncHandler(async (req, res) => {
                         $project: {
                             fullName:1,
                             username:1,
-                            avatar:1
-                        }
-                    },
-                    {
-                        $addFields:{
-                            owner:{
-                            $firs:"$owner"
-                            }
+                            "avatar.url":1,
+                            "coverImage.url":1
                         }
                     }
+                    
               ]
             }
-        }
+        },
+
+        {
+          $addFields:{
+              owner:{
+              $first:"$owner"
+              }
+          }
+      }
   ])
 
-  if(!plalist){
+  if(!playlist){
     throw new ApiError(400," There is No Plalist Available In This Id ")
   }
-  console.log(plalist)
-
-
-
 
   return res
     .status(200)
-    .json(new ApiResponse(200, plalist, " plalist Has Been created "));
+    .json(new ApiResponse(200, playlist, " plalist Has Been created "));
 
 
 });
@@ -152,25 +169,29 @@ const getPlaylistById = asyncHandler(async (req, res) => {
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
   const { playlistId, videoId } = req.params;
 
-  if(!playlistId || !videoId){
-    throw new ApiError(400, " Please Prive Playlist Id and Video Id ");
-  }
+  if(!playlistId && !videoId) throw new ApiError(400, " Please Prive Playlist Id and Video Id ");
+  
+  const video = await Video.exists({_id:videoId});
+ 
+  if(!video) throw new ApiError(404," video not found");
 
- const plyalist =  await Playlist.updateOne({vide:videoId}, {
-    $push:{
-      videos:videoId 
-    }
-  })
+  if(! isValidObjectId(videoId)) throw new ApiError(400," invalid video id ")
+
+  const playlist =  await Playlist.updateOne({_id:playlistId}, {
+      $push:{
+        videos:videoId 
+      }
+    },{new:true})
 
 
-  if(! plyalist){
-    throw new ApiError(400 , " Playlist Not Found ")
+  if(! playlist){
+    throw new ApiError(400 , playlist , " Playlist Not Found ")
   }
 
 
   return res
     .status(200)
-    .json(new ApiResponse(200, newPlaylist, " plalist Has Been created "));
+    .json(new ApiResponse(200, playlist, " plalist Has Been created "));
 });
 
 
@@ -179,9 +200,15 @@ const removeVideoFromPlaylist = asyncHandler(async (req, res) => {
   const { playlistId, videoId } = req.params;
   // TODO: remove video from playlist
 
+  await Playlist.updateOne({_id:playlistId},{
+    $pull:{ videos:videoId }
+  },{new:true})
+
   return res
     .status(200)
-    .json(new ApiResponse(200, newPlaylist, " plalist Has Been created "));
+    .json(new ApiResponse(200, {}, " video has been romoved from playlist "));
+
+
 });
 
 
@@ -194,7 +221,7 @@ const deletePlaylist = asyncHandler(async (req, res) => {
 
   return res
     .status(200)
-    .json(new ApiResponse(200, {}, " plalist Has Been Deleted  "));
+    .json(new ApiResponse(200, {}, " playlist Has Been Deleted  "));
 });
 
 
@@ -204,7 +231,7 @@ const updatePlaylist = asyncHandler(async (req, res) => {
   const { name, description } = req.body;
   //TODO: update playlist
 
-  const plalist = await Playlist.findByIdAndUpdate(playlistId , {
+  const playlist = await Playlist.findByIdAndUpdate(playlistId , {
      $set:{
         name,
         description
@@ -214,7 +241,7 @@ const updatePlaylist = asyncHandler(async (req, res) => {
   
   return res
     .status(200)
-    .json(new ApiResponse(200, plalist, " plalist Has Been updated  "));
+    .json(new ApiResponse(200, playlist, " plalist Has Been updated  "));
 });
 
 

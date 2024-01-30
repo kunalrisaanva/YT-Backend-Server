@@ -18,6 +18,7 @@ const videoSchema = new Schema ( {
 
     title:{
         type:String ,  
+        trim:true,
         required:true,
         
     },
