@@ -86,7 +86,7 @@ const updateComment = asyncHandler(async (req, res) => {
     
     const comment = await Comment.findById(commentId).select(" -createdAt -updatedAt ")
    
-    if(!req.user?._id === new mongoose.Types.ObjectId(comment.owner)){
+    if(req.user?._id !== new mongoose.Types.ObjectId(comment.owner)){
         throw new ApiError(400," Invlid User !! This User Don't Have Permission To Edite This Comment")
     }
     
@@ -113,7 +113,7 @@ const deleteComment = asyncHandler(async (req, res) => {
     
     const commentFind = await Comment.findById(commentId).select(" -updatedAt -updatedAt ")
 
-    if(!req.user?._id === new mongoose.Types.ObjectId(commentFind.owner)){
+    if(req.user?._id !== new mongoose.Types.ObjectId(commentFind.owner)){
         throw new ApiError(400," Invlid User !! This User Don't Have Permission To Delete This Comment")
     }
     
