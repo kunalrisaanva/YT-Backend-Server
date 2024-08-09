@@ -1,7 +1,7 @@
 # YT-Backend-Project
 
 
-- [Model Design link](https://app.eraser.io/workspace/YtPqZ1VogxGy1jzIDkzj?origin=share)
+- [Model Design link](https://app.eraser.io/workspace/ZM6yP3FQkGAUIJA0CEzc)
 
 - [Postman Api Documentation](https://documenter.getpostman.com/view/21582927/2s9YysCgvY)
 
